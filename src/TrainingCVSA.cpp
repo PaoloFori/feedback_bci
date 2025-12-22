@@ -405,7 +405,7 @@ void TrainingCVSA::bci_protocol(void){
     int                    idx_class;
     int                    fake_trialclass;
     int                    trialdirection;
-    int                    targethit;
+    int                    trialhit;
     std::vector<int>       count_results = std::vector<int>(3, 0); // count hit, miss and timeout
     ros::Rate r(this->rate_);
     std::vector<int> idxs_classes(this->nclasses_);
@@ -442,7 +442,7 @@ void TrainingCVSA::bci_protocol(void){
             trialdirection = this->class2direction(trialclass);
             trialthreshold = this->direction2threshold(trialdirection);
         }
-        targethit      = -1;
+        trialhit      = -1;
         this->trial_ok_ = 1;
 
         if(this->modality_ == Modality::Calibration) {
@@ -535,7 +535,7 @@ void TrainingCVSA::bci_protocol(void){
         // Set up initial probabilities
         this->current_input_ = std::vector<float>(this->nclasses_, 0.0f); 
 
-        while(ros::ok() && this->user_quit_ == false && targethit == -1 && idx_sampleAudio + n_sampleAudio < this->buffer_audio_full_.size()) {
+        while(ros::ok() && this->user_quit_ == false && trialhit == -1 && idx_sampleAudio + n_sampleAudio < this->buffer_audio_full_.size()) {
 
             c_time = this->timer_.toc();
             if(this->modality_ == Modality::Calibration) {
@@ -569,11 +569,11 @@ void TrainingCVSA::bci_protocol(void){
                 }
                 //ROS_INFO("Probabilities: %f %f Thresholds: %f %f", this->current_input_[0], this->current_input_[1], this->thresholds_[0], this->thresholds_[1]);
             }
-            
-            targethit = this->is_target_hit(this->current_input_,  
+
+            trialhit = this->is_target_hit(this->current_input_,  
                                             c_time, trialduration);
 
-            if(targethit != -1)
+            if(trialhit != -1)
                 break;
         
             r.sleep();
@@ -586,9 +586,9 @@ void TrainingCVSA::bci_protocol(void){
         
 
         /* BOOM */
-        if(trialdirection == targethit){
+        if(trialdirection == trialhit){
             boomevent = Events::Hit;
-        }else if(targethit >= 0 && targethit < this->nclasses_){
+        }else if(trialhit >= 0 && trialhit < this->nclasses_){
             boomevent = Events::Miss;
         }else{
             boomevent = Events::Timeout;
@@ -596,7 +596,7 @@ void TrainingCVSA::bci_protocol(void){
         // for the robot motion
         if(this->robot_control_){
             this->setevent(boomevent);
-            this->show_boom(trialdirection, targethit);
+            this->show_boom(trialdirection, trialhit);
             this->timer_.tic();
             std_srvs::Trigger srv;
             while(true){
@@ -617,7 +617,7 @@ void TrainingCVSA::bci_protocol(void){
             this->setevent(boomevent + Events::Off);
         }else{
             this->setevent(boomevent);
-            this->show_boom(trialdirection, targethit);
+            this->show_boom(trialdirection, trialhit);
             this->sleep(this->duration_.boom);
             this->hide_boom();
             this->setevent(boomevent + Events::Off);

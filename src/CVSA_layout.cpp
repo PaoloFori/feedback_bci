@@ -83,9 +83,9 @@ void CVSA_layout::show_cue(int index) {
     this->square_->show();
 }
 
-void CVSA_layout::show_boom(int idx_position, int idx_color) { 
+void CVSA_layout::show_boom(int idx_trial_cue, int idx_color) { 
 
-    if(idx_position > this->circlePositions_.size() || idx_position < 0){
+    if(idx_trial_cue > this->circlePositions_.size() || idx_trial_cue < 0){
         ROS_WARN("Unknown circle required. Boom position is not set");
         return;
     }
@@ -93,7 +93,10 @@ void CVSA_layout::show_boom(int idx_position, int idx_color) {
         ROS_WARN("Unknown color required. Boom position is not set");
         return;
     }
-    this->circle_->move(this->circlePositions_.at(idx_position).at(0), this->circlePositions_.at(idx_position).at(1));
+    if(! (idx_color == CuePalette.size()-1) ){ // if not timeout
+        idx_trial_cue = idx_color;
+    }
+    this->circle_->move(this->circlePositions_.at(idx_trial_cue).at(0), this->circlePositions_.at(idx_trial_cue).at(1));
     this->circle_->set_color(CuePalette.at(idx_color));
     
     this->circle_->show();

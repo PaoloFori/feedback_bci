@@ -15,11 +15,14 @@
 
 namespace feedback {
 
-const std::array<neurodraw::Color, 5> CuePalette { 
-		neurodraw::Palette::royalblue, 
+const std::array<neurodraw::Color, 3> CuePalette { 
 		neurodraw::Palette::firebrick, 
+        neurodraw::Palette::firebrick, 
+		/*
+        neurodraw::Palette::royalblue, 
 		neurodraw::Palette::orange,
 		neurodraw::Palette::darkgray,
+        */
         neurodraw::Palette::yellow // for timeout
 };
 
