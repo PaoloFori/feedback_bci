@@ -40,7 +40,7 @@ struct Events {
     static const int Timeout       = 899;
     static const int Off           = 32768;
 
-    static const int Fake_rest          = 784;
+    static const int Fake_rest     = 784;
 
     static const int StartCalibEye = 2;
     

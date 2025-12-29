@@ -185,7 +185,7 @@ bool TrainingCVSA::configure(void) {
     ros::param::param("~duration/cue",              this->duration_.cue,               1000);
     ros::param::param("~duration/feedback_min",     this->duration_.feedback_min,      4000); // duration of cf
     ros::param::param("~duration/feedback_max",     this->duration_.feedback_max,      5500);
-    ros::param::param("~duration/boom",             this->duration_.boom,              1000);
+    ros::param::param("~duration/boom",             this->duration_.boom,              1500);
     ros::param::param("~duration/timeout",          this->duration_.timeout,          10000); // duration of cf
     ros::param::param("~duration/iti",              this->duration_.iti,                100);
     ros::param::param("~duration/end",              this->duration_.end,               2000);
@@ -657,7 +657,7 @@ void TrainingCVSA::bci_protocol(void){
     ROS_INFO("[Training_CVSA] Hit: %d, Miss: %d, Timeout: %d", count_results[0], count_results[1], count_results[2]);
 
     // End
-    if(user_quit_ == false)
+    if(this->user_quit_ == false)
         this->sleep(this->duration_.end);
     ROS_INFO("[Training_CVSA] Protocol ended");
 

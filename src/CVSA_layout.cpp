@@ -24,7 +24,7 @@ void CVSA_layout::setup(void) {
     this->cross_   = new neurodraw::Cross(0.3f, 0.05f);
     this->center_  = new neurodraw::Circle(0.03f, true, neurodraw::Palette::white);
     this->calibration_  = new neurodraw::Circle(0.03f, true, neurodraw::Palette::white);
-    this->circle_  = new neurodraw::Circle(0.15f, true, neurodraw::Palette::dimgray);
+    this->circle_  = new neurodraw::Circle(0.05f, true, neurodraw::Palette::dimgray);
     this->square_   = new neurodraw::Rectangle(0.2f, 0.2f, true, neurodraw::Palette::white);
     for(int i = 0; i < this->nclasses_; i++) {
         neurodraw::Color color = CuePalette.at(i);
