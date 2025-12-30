@@ -84,8 +84,11 @@ bool TrainingCVSA::configure(void) {
 
     /* PARAMETER FOR THE SOUND FEEDBACK*/
     // Getting parameters for audio feedback
+    this->p_nh_.param("audio_increasing", this->audio_increasing_, true);
+    ROS_WARN("[Training_CVSA] Audio increasing is %s", this->audio_increasing_ ? "enabled" : "disabled");
+    this->p_nh_.param("audio_name_cf", this->audio_name_cf_, std::string("cf.wav"));
     if(this->p_nh_.getParam("audio_path", this->audio_path_) == false) {
-        ROS_ERROR("[Training_CVSA] Parameter 'audio_feedback' is mandatory");
+        ROS_ERROR("[Training_CVSA] Parameter 'audio_path' is mandatory");
         return false;
     }
     if(this->modality_ == Modality::Evaluation){
@@ -103,6 +106,7 @@ bool TrainingCVSA::configure(void) {
     }
     this->p_nh_.param("audio_cue", this->audio_cue_, false);
     ROS_WARN("[Training_CVSA] Audio cue is %s", this->audio_cue_ ? "enabled" : "disabled");
+    ROS_WARN("[Training_CVSA] Name audio continuous feedback: %s", this->audio_name_cf_.c_str());
 
     /* PARAMETER FOR POSITIVE FEEDBACK*/
     this->p_nh_.param("positive_feedback", this->positive_feedback_, false);
@@ -419,6 +423,9 @@ void TrainingCVSA::bci_protocol(void){
 
     // Begin
     this->sleep(this->duration_.begin);
+
+    // open the feedback audio, with the default values: all wav file have the same sample rate and channels
+    this->openAudioDevice();
     
     for(int i = 0; i < this->trialsequence_.size(); i++) {
         // Getting trial information
@@ -490,13 +497,13 @@ void TrainingCVSA::bci_protocol(void){
             }else{
                 this->loadWAVFile(this->audio_path_ + "/" + std::to_string(trialclass) + ".wav");
             }
-            this->openAudioDevice();
             this->setAudio(idx_sampleAudio, sampleAudio, bufferAudioSize, n_sampleAudio);
-            while(idx_sampleAudio + n_sampleAudio <= this->buffer_audio_full_.size()){       
+            while((idx_sampleAudio + n_sampleAudio) * this->channels_audio_ <= this->buffer_audio_full_.size()){
+            //while(idx_sampleAudio + n_sampleAudio <= this->buffer_audio_full_.size()){       
                 this->fillAudioBuffer(idx_sampleAudio, n_sampleAudio, true);
                 ao_play(this->device_audio_, reinterpret_cast<char*>(this->buffer_audio_played_.data()), bufferAudioSize * sizeof(short));
             }
-            this->closeAudioDevice();
+            this->play_fadeout(idx_sampleAudio, n_sampleAudio, bufferAudioSize);
             c_time = this->timer_.toc();
             if(this->duration_.cue - c_time > 0){
                 ROS_INFO("[Training_CVSA] Cue added time: %d ms", c_time);
@@ -528,8 +535,7 @@ void TrainingCVSA::bci_protocol(void){
         this->show_center();
 
         // Start the sound feedback
-        this->loadWAVFile(this->audio_path_ + "/cf.wav");
-        this->openAudioDevice();
+        this->loadWAVFile(this->audio_path_ + "/" + this->audio_name_cf_);
         this->setAudio(idx_sampleAudio, sampleAudio, bufferAudioSize, n_sampleAudio);
 
         // Set up initial probabilities
@@ -579,9 +585,9 @@ void TrainingCVSA::bci_protocol(void){
             r.sleep();
             ros::spinOnce();
         }
+        this->play_fadeout(idx_sampleAudio, n_sampleAudio, bufferAudioSize);
         this->hide_center();
         this->setevent(Events::CFeedback + Events::Off);
-        this->closeAudioDevice();
         if(ros::ok() == false || this->user_quit_ == true) break;
         
 
@@ -653,6 +659,9 @@ void TrainingCVSA::bci_protocol(void){
 
     }
 
+    // close the audio device
+    this->closeAudioDevice();
+
     // Print accuracy
     ROS_INFO("[Training_CVSA] Hit: %d, Miss: %d, Timeout: %d", count_results[0], count_results[1], count_results[2]);
 
@@ -691,11 +700,21 @@ void TrainingCVSA::fillAudioBuffer(int& idx_sampleAudio, const size_t& n_sampleA
 
     if(cue){
         input_norm = std::vector<float>(this->nclasses_, 1.0f);
-    }else if(this->modality_ == Modality::Evaluation && !cue){
+    }else if(this->modality_ == Modality::Evaluation && !cue && this->audio_increasing_){
         input_norm = this->normalize4audio(this->current_input_);
-    }else if(this->modality_ == Modality::Calibration && !cue){
+    }else if(this->modality_ == Modality::Calibration && !cue && this->audio_increasing_){
         input_norm = this->current_input_;
+    }else if(!this->audio_increasing_){
+        std::vector<float> input = this->current_input_;
+        if(input[0] > input[1]){
+            input_norm[0] = 1.0f;
+            input_norm[1] = 0.0f;
+        }else{
+            input_norm[0] = 0.0f;
+            input_norm[1] = 1.0f;
+        }
     }
+    
 
     for(int i = 0; i < n_sampleAudio * this->channels_audio_; i += this->channels_audio_) {
         for(int j = 0; j < this->channels_audio_; j++) {
@@ -703,6 +722,29 @@ void TrainingCVSA::fillAudioBuffer(int& idx_sampleAudio, const size_t& n_sampleA
         }
     }
     idx_sampleAudio += n_sampleAudio;
+}
+
+// stop the audio smoothly
+void TrainingCVSA::play_fadeout(int& idx_sampleAudio, size_t& n_sampleAudio, size_t& bufferAudioSize) {
+    
+    this->fillAudioBuffer(idx_sampleAudio, n_sampleAudio, false);
+    size_t total_samples = bufferAudioSize * sizeof(short) / 2; 
+    short* raw_buffer = reinterpret_cast<short*>(this->buffer_audio_played_.data());
+    int total_frames = bufferAudioSize / this->channels_audio_; 
+    
+    for (int i = 0; i < total_frames; i++) {
+        float fade_factor = 1.0f - (static_cast<float>(i) / static_cast<float>(total_frames));
+        
+        for (int j = 0; j < this->channels_audio_; j++) {
+            int index = (i * this->channels_audio_) + j;
+            raw_buffer[index] = static_cast<short>(raw_buffer[index] * fade_factor);
+        }
+    }
+
+    ao_play(this->device_audio_, reinterpret_cast<char*>(this->buffer_audio_played_.data()), bufferAudioSize * sizeof(short));
+    
+    std::vector<short> silence(bufferAudioSize, 0);
+    ao_play(this->device_audio_, reinterpret_cast<char*>(silence.data()), bufferAudioSize * sizeof(short));
 }
 
 void TrainingCVSA::loadWAVFile(const std::string& filename) {
@@ -713,10 +755,12 @@ void TrainingCVSA::loadWAVFile(const std::string& filename) {
         return;
     }
 
+    /*
     this->channels_audio_ = sfInfo.channels;
     this->sampleRate_audio_ = sfInfo.samplerate;
+    */
 
-    if(this->nclasses_ != this->channels_audio_ && filename.find("cf.wav") != std::string::npos) {
+    if(this->nclasses_ != this->channels_audio_) {
         ROS_WARN("[Training_CVSA] The number of classes (%d) is different of the number of channels of the audio feedback (%d)", this->nclasses_, this->channels_audio_);
     }
 

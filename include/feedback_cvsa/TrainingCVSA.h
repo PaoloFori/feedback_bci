@@ -97,6 +97,7 @@ class TrainingCVSA : public CVSA_layout {
     private:
         std::vector<std::vector<float>> str2matrix(const std::string& str);
         std::vector<float> normalize4audio(std::vector<float>& input);
+        void play_fadeout(int& idx_sampleAudio, size_t& n_sampleAudio, size_t& bufferAudioSize);
 
     private:
         ros::NodeHandle nh_;
@@ -143,21 +144,21 @@ class TrainingCVSA : public CVSA_layout {
 
         // feedback audio
         std::string audio_path_;
-        int channels_audio_;
-        int sampleRate_audio_;
+        int channels_audio_ = 2;
+        int sampleRate_audio_ = 44100;
         std::vector<short> buffer_audio_full_;
         std::vector<short> buffer_audio_played_;
         ao_device *device_audio_;
         std::vector<float> init_percentual_;
+        bool audio_increasing_;
+        bool audio_cue_ = false;
+        std::string audio_name_cf_;
 
         // for positive feedback
         bool positive_feedback_ = false;
 
         // for robot control
         bool robot_control_ = false;
-
-        // for audio cue
-        bool audio_cue_ = false;
 
         // for fake rest
         bool fake_rest_ = false;
