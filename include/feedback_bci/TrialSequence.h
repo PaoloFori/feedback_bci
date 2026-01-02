@@ -1,5 +1,5 @@
-#ifndef FEEDBACK_CVSA_TRIALSQUENCE_H_
-#define FEEDBACK_CVSA_TRIALSQUENCE_H_
+#ifndef FEEDBACK_BCI_TRIALSQUENCE_H_
+#define FEEDBACK_BCI_TRIALSQUENCE_H_
 
 #include <iostream>
 #include <numeric>

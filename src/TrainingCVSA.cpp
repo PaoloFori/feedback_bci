@@ -1,4 +1,4 @@
-#include "feedback_cvsa/TrainingCVSA.h"
+#include "feedback_bci/TrainingCVSA.h"
 
 
 namespace feedback {
@@ -178,7 +178,7 @@ bool TrainingCVSA::configure(void) {
     this->p_nh_.param("eye_motion_online", this->eye_motion_online_, false);
     if(this->eye_motion_online_){
         this->srv_repeat_trial_ = this->nh_.advertiseService("cvsa/repeat_trial", &TrainingCVSA::on_repeat_trial, this);
-        this->pub_trials_keep_ = this->nh_.advertise<feedback_cvsa::Trials_to_keep>("cvsa/trials_keep", 1);
+        this->pub_trials_keep_ = this->nh_.advertise<feedback_bci::Trials_to_keep>("cvsa/trials_keep", 1);
     }
 
 
@@ -299,7 +299,7 @@ void TrainingCVSA::on_received_data(const rosneuro_msgs::NeuroOutput& msg) {
     //std::cout << "Received data: " << this->current_input_[0] << " " << this->current_input_[1] << std::endl;  
 }
 
-bool TrainingCVSA::on_repeat_trial(feedback_cvsa::Repeat_trial::Request &req, feedback_cvsa::Repeat_trial::Response &res) {
+bool TrainingCVSA::on_repeat_trial(feedback_bci::Repeat_trial::Request &req, feedback_bci::Repeat_trial::Response &res) {
     this->trial_ok_ = 0;
     int class2repeat = req.class2repeat;
     auto it = std::find(this->classes_.begin(), this->classes_.end(), class2repeat);
@@ -672,7 +672,7 @@ void TrainingCVSA::bci_protocol(void){
 
     // Publish the trials keep
     if(this->eye_motion_online_){
-        feedback_cvsa::Trials_to_keep msg;
+        feedback_bci::Trials_to_keep msg;
         msg.trials_to_keep = this->trials_keep_;
         this->pub_trials_keep_.publish(msg);
     }

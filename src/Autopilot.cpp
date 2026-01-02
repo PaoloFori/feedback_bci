@@ -1,4 +1,4 @@
-#include "feedback_cvsa/Autopilot.h"
+#include "feedback_bci/Autopilot.h"
 
 namespace rosneuro {
 	namespace feedback {

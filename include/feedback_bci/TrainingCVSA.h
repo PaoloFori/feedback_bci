@@ -1,5 +1,5 @@
-#ifndef FEEDBACK_CVSA_TRAININGCVSA_H_
-#define FEEDBACK_CVSA_TRAININGCVSA_H_
+#ifndef FEEDBACK_BCI_TRAININGCVSA_H_
+#define FEEDBACK_BCI_TRAININGCVSA_H_
 
 #include <numeric>
 #include <array>
@@ -7,20 +7,20 @@
 #include <random>
 
 #include <dynamic_reconfigure/server.h>
-#include "feedback_cvsa/Repeat_trial.h"
+#include "feedback_bci/Repeat_trial.h"
 
-#include "feedback_cvsa/Trials_to_keep.h"
+#include "feedback_bci/Trials_to_keep.h"
 #include <std_srvs/Trigger.h>
 
 #include <rosneuro_msgs/NeuroEvent.h>
 #include <rosneuro_msgs/NeuroOutput.h>
 #include <neurochrono/Timer.h>
 
-#include "feedback_cvsa/CVSA_layout.h"
-#include "feedback_cvsa/TrialSequence.h"
+#include "feedback_bci/CVSA_layout.h"
+#include "feedback_bci/TrialSequence.h"
 
 
-#include "feedback_cvsa/Autopilot.h"
+#include "feedback_bci/Autopilot.h"
 
 #include <numeric>
 #include <algorithm>
@@ -61,7 +61,7 @@ struct Duration {
     int calibration;
 };
 
-using config_cvsa          = feedback_cvsa::CVSAConfig;
+using config_cvsa          = feedback_bci::CVSAConfig;
 using dyncfg_cvsa          = dynamic_reconfigure::Server<config_cvsa>;
 
 class TrainingCVSA : public CVSA_layout {
@@ -87,7 +87,7 @@ class TrainingCVSA : public CVSA_layout {
         int is_target_hit(std::vector<float> input, int elapsed, int duration);
         void on_received_data(const rosneuro_msgs::NeuroOutput& msg);
         void on_request_reconfigure(config_cvsa &config, uint32_t level);
-        bool on_repeat_trial(feedback_cvsa::Repeat_trial::Request &req, feedback_cvsa::Repeat_trial::Response &res);
+        bool on_repeat_trial(feedback_bci::Repeat_trial::Request &req, feedback_bci::Repeat_trial::Response &res);
         void loadWAVFile(const std::string& filename);
         void openAudioDevice(void);
         void closeAudioDevice(void);

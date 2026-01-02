@@ -1,4 +1,4 @@
-#include "feedback_cvsa/TrialSequence.h"
+#include "feedback_bci/TrialSequence.h"
 
 namespace feedback {
 

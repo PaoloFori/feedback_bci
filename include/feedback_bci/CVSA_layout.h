@@ -1,9 +1,9 @@
-#ifndef FEEDBACK_CVSA_LAYOUT_H_
-#define FEEDBACK_CVSA_LAYOUT_H_
+#ifndef FEEDBACK_BCI_LAYOUT_H_
+#define FEEDBACK_BCI_LAYOUT_H_
 
 #include <ros/ros.h>
 
-#include "feedback_cvsa/CVSAConfig.h"
+#include "feedback_bci/CVSAConfig.h"
 
 #include <neurodraw/Engine.h>
 #include <neurodraw/Palette.h>

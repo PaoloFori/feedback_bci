@@ -1,5 +1,5 @@
 #include <ros/ros.h>
-#include "feedback_cvsa/TrainingCVSA.h"
+#include "feedback_bci/TrainingCVSA.h"
 
 
 int main(int argc, char** argv) {
