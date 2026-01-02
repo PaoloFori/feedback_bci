@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>feedback_cvsa</name>
+  <name>feedback_bci</name>
   <version>0.0.1</version>
-  <description>feedback cvsa with neurodraw</description>
+  <description>feedback bci with neurodraw</description>
   <author email="paolo.forin@phd.unipd.it">Paolo Forin</author>
   <maintainer email="paolo.forin@phd.unipd.it">Paolo Forin</maintainer>
 
