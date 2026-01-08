@@ -97,7 +97,7 @@ class TrainingCVSA : public CVSA_layout {
     private:
         std::vector<std::vector<float>> str2matrix(const std::string& str);
         std::vector<float> normalize4audio(std::vector<float>& input);
-        void play_fadeout(int& idx_sampleAudio, size_t& n_sampleAudio, size_t& bufferAudioSize);
+        void play_fadeout(int& idx_sampleAudio, size_t& n_sampleAudio, size_t& bufferAudioSize, bool cue = false);
 
     private:
         ros::NodeHandle nh_;

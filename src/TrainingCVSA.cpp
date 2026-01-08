@@ -480,6 +480,7 @@ void TrainingCVSA::bci_protocol(void){
 
 
         /* CUE */
+        this->show_center();
         int idx_sampleAudio;
         size_t sampleAudio, bufferAudioSize, n_sampleAudio;
         if(this->fake_rest_ && this->modality_ == Modality::Calibration && trialclass == Events::Fake_rest){
@@ -499,11 +500,9 @@ void TrainingCVSA::bci_protocol(void){
             }
             this->setAudio(idx_sampleAudio, sampleAudio, bufferAudioSize, n_sampleAudio);
             while((idx_sampleAudio + n_sampleAudio) * this->channels_audio_ <= this->buffer_audio_full_.size()){
-            //while(idx_sampleAudio + n_sampleAudio <= this->buffer_audio_full_.size()){       
                 this->fillAudioBuffer(idx_sampleAudio, n_sampleAudio, true);
                 ao_play(this->device_audio_, reinterpret_cast<char*>(this->buffer_audio_played_.data()), bufferAudioSize * sizeof(short));
             }
-            this->play_fadeout(idx_sampleAudio, n_sampleAudio, bufferAudioSize);
             c_time = this->timer_.toc();
             if(this->duration_.cue - c_time > 0){
                 ROS_INFO("[Training_CVSA] Cue added time: %d ms", c_time);
@@ -520,7 +519,6 @@ void TrainingCVSA::bci_protocol(void){
         }
         this->setevent(trialclass + Events::Off);
         
-        
         if(ros::ok() == false || this->user_quit_ == true) break;
 
 
@@ -532,7 +530,6 @@ void TrainingCVSA::bci_protocol(void){
 
         // Send cf event
         this->setevent(Events::CFeedback);
-        this->show_center();
 
         // Start the sound feedback
         this->loadWAVFile(this->audio_path_ + "/" + this->audio_name_cf_);
@@ -585,8 +582,7 @@ void TrainingCVSA::bci_protocol(void){
             r.sleep();
             ros::spinOnce();
         }
-        this->play_fadeout(idx_sampleAudio, n_sampleAudio, bufferAudioSize);
-        this->hide_center();
+        this->play_fadeout(idx_sampleAudio, n_sampleAudio, bufferAudioSize, false);
         this->setevent(Events::CFeedback + Events::Off);
         if(ros::ok() == false || this->user_quit_ == true) break;
         
@@ -646,6 +642,7 @@ void TrainingCVSA::bci_protocol(void){
 
 
         /* FINISH the trial */
+        this->hide_center();
         this->setevent(Events::Start + Events::Off);
 
         if(ros::ok() == false || this->user_quit_ == true) break;
@@ -725,9 +722,9 @@ void TrainingCVSA::fillAudioBuffer(int& idx_sampleAudio, const size_t& n_sampleA
 }
 
 // stop the audio smoothly
-void TrainingCVSA::play_fadeout(int& idx_sampleAudio, size_t& n_sampleAudio, size_t& bufferAudioSize) {
+void TrainingCVSA::play_fadeout(int& idx_sampleAudio, size_t& n_sampleAudio, size_t& bufferAudioSize, bool cue) {
     
-    this->fillAudioBuffer(idx_sampleAudio, n_sampleAudio, false);
+    this->fillAudioBuffer(idx_sampleAudio, n_sampleAudio, cue);
     size_t total_samples = bufferAudioSize * sizeof(short) / 2; 
     short* raw_buffer = reinterpret_cast<short*>(this->buffer_audio_played_.data());
     int total_frames = bufferAudioSize / this->channels_audio_; 
