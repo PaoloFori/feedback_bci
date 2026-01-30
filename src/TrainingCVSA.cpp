@@ -191,6 +191,7 @@ bool TrainingCVSA::configure(void) {
     ros::param::param("~duration/feedback_max",     this->duration_.feedback_max,      5500);
     ros::param::param("~duration/boom",             this->duration_.boom,              1500);
     ros::param::param("~duration/timeout",          this->duration_.timeout,          10000); // duration of cf
+    ros::param::param("~duration/timeout_on_rest",  this->duration_.timeout_on_rest,   6000);
     ros::param::param("~duration/iti",              this->duration_.iti,                100);
     ros::param::param("~duration/end",              this->duration_.end,               2000);
     ros::param::param("~duration/calibration",      this->duration_.calibration,       2000);
@@ -203,10 +204,16 @@ bool TrainingCVSA::configure(void) {
     } else {
         this->mindur_active_ = this->duration_.timeout;
         this->maxdur_active_ = this->duration_.timeout;
+        this->mindur_rest_   = this->duration_.timeout_on_rest;
+        this->maxdur_rest_   = this->duration_.timeout_on_rest;
     }
 
     for(int i = 0; i < this->nclasses_; i++) {
-        this->trialsequence_.addclass(this->classes_.at(i), this->trials_per_class_.at(i), this->mindur_active_, this->maxdur_active_);
+        if(this->classes_at(i) == Events::Rest){
+            this->trialsequence_.addclass(this->classes_.at(i), this->trials_per_class_.at(i), this->mindur_rest_, this->maxdur_rest_);
+        }else{
+            this->trialsequence_.addclass(this->classes_.at(i), this->trials_per_class_.at(i), this->mindur_active_, this->maxdur_active_);
+        }
     }
 
     if(this->fake_rest_){
@@ -307,7 +314,11 @@ bool TrainingCVSA::on_repeat_trial(feedback_bci::Repeat_trial::Request &req, fee
         int idx_class = std::distance(this->classes_.begin(), it);
         if(this->trials_per_class_.at(idx_class) <= this->max_trials_per_class_.at(idx_class)){
             this->trials_per_class_.at(idx_class) = this->trials_per_class_.at(idx_class) + 1;
-            this->trialsequence_.addtrial(class2repeat, this->mindur_active_, this->maxdur_active_);
+            if(class2repeat == Events::Rest){
+                this->trialsequence_.addtrial(class2repeat, this->mindur_rest_, this->maxdur_rest_);
+            }else{
+                this->trialsequence_.addtrial(class2repeat, this->mindur_active_, this->maxdur_active_);
+            }
             res.success = true;
             return true;
         }

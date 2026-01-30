@@ -39,6 +39,7 @@ struct Events {
     static const int Miss          = 898;
     static const int Timeout       = 899;
     static const int Off           = 32768;
+    static const int Rest          = 783;
 
     static const int Fake_rest     = 784;
 
@@ -123,6 +124,8 @@ class TrainingCVSA : public CVSA_layout {
         Modality modality_;
         int mindur_active_;
         int maxdur_active_;
+        int mindur_rest_;
+        int maxdur_rest_;
 
         // Timer
         neurochrono::timer_msecs timer_;
