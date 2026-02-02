@@ -5,29 +5,33 @@ from pydub.silence import detect_leading_silence
 def generate_rest_wav():
     text = "rest"
     temp_mp3 = "temp_rest.mp3"
-    output_wav = "rest.wav"
+    output_wav = "783.wav" # Rinominato come richiesto
 
-    # 1. Genera l'audio (lingua inglese per la pronuncia corretta)
+    # 1. Genera l'audio
     tts = gTTS(text=text, lang='en')
     tts.save(temp_mp3)
 
-    # 2. Carica il file con pydub
+    # 2. Carica il file
     audio = AudioSegment.from_mp3(temp_mp3)
 
-    # 3. Rimuovi il silenzio per renderlo istantaneo e sotto il secondo
+    # 3. Rimuovi il silenzio
     trim_leading = lambda x: x[detect_leading_silence(x):]
     trim_trailing = lambda x: trim_leading(x.reverse()).reverse()
-    
     clean_audio = trim_trailing(trim_leading(audio))
 
-    # Forza la durata se necessario (opzionale, ma utile per sicurezza)
     if len(clean_audio) > 1000:
         clean_audio = clean_audio[:1000]
 
-    # 4. Esporta in WAV
-    clean_audio.export(output_wav, format="wav")
-    print(f"File '{output_wav}' generato con successo!")
-    print(f"Durata effettiva: {len(clean_audio)} ms")
+    # --- MODIFICA QUI: Conversione Formato ---
+    # Imposta i canali a 2 (Stereo) e il sample rate a 44100 Hz
+    clean_audio = clean_audio.set_frame_rate(44100).set_channels(2)
+    # -----------------------------------------
+
+    # 4. Esporta in WAV (assicuriamoci che sia 16-bit PCM)
+    clean_audio.export(output_wav, format="wav", parameters=["-acodec", "pcm_s16le"])
+    
+    print(f"File '{output_wav}' generato correttamente!")
+    print(f"Proprietà: {clean_audio.frame_rate}Hz, {clean_audio.channels} canali, {len(clean_audio)}ms")
 
 if __name__ == "__main__":
     generate_rest_wav()

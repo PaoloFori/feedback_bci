@@ -119,6 +119,7 @@ class TrainingCVSA : public CVSA_layout {
         std::vector<int> classes_;
         std::vector<int> trials_per_class_;
         std::vector<int> max_trials_per_class_;
+        int nclasses_;
 
         Duration duration_;
         Modality modality_;

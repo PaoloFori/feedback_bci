@@ -25,13 +25,22 @@ bool TrainingCVSA::configure(void) {
         ROS_ERROR("[Training_CVSA] Parameter 'classes' is mandatory");
         return false;
     } 
-    this->set_nclasses(this->classes_.size());
+    this->nclasses_ = this->classes_.size();
+
+    int nactiveclasses= 0;
+    for(auto c : this->classes_) {
+        if(c != Events::Rest) nactiveclasses++;
+    }
+    this->set_nactiveclasses(nactiveclasses);
+    if(this->nactiveclasses_ != this->nclasses_){
+        ROS_WARN("[Training_CVSA] Only %d active classes out of %d total classes are provided", this->nactiveclasses_, this->nclasses_);
+    }
 
     // Getting layout positions
     std::string layout;
     if(this->p_nh_.getParam("circlePositions", layout) == true) {
-        if (this->str2matrix(layout).size() != this->nclasses_ || this->str2matrix(layout).at(0).size() != 2){
-            ROS_ERROR("[Training_CVSA] The provided layout is not correct. It must be a matrix with %d rows and 2 columns", this->nclasses_);
+        if (this->str2matrix(layout).size() != this->nactiveclasses_ || this->str2matrix(layout).at(0).size() != 2){
+            ROS_ERROR("[Training_CVSA] The provided layout is not correct. It must be a matrix with %d rows and 2 columns", this->nactiveclasses_);
             return false;
         } 
         this->set_circle_positions(this->str2matrix(layout));
@@ -41,7 +50,7 @@ bool TrainingCVSA::configure(void) {
     }
     
     // set up the windows layout
-	this->setup();
+    this->setup();
 
 
     /* PARAMETER FOR THE TRIAL EXECUTIONS*/
@@ -49,8 +58,8 @@ bool TrainingCVSA::configure(void) {
     if(this->p_nh_.getParam("thresholds", this->thresholds_) == false) {
         ROS_ERROR("[Training_CVSA] Parameter 'thresholds' is mandatory");
         return false;
-    } else if(this->thresholds_.size() != this->nclasses_) {
-        ROS_ERROR("[Training_CVSA] Thresholds must be the same of the number of classes %d", this->nclasses_);
+    } else if(this->thresholds_.size() != this->nactiveclasses_) {
+        ROS_ERROR("[Training_CVSA] Thresholds must be the same of the number of active classes %d", this->nactiveclasses_);
         return false;
     }
 
@@ -96,7 +105,7 @@ bool TrainingCVSA::configure(void) {
             ROS_ERROR("[Training_CVSA] Parameter 'init_percentual' is mandatory");
             return false;
         }
-        if(this->init_percentual_.size() != this->nclasses_ ) {
+        if(this->init_percentual_.size() != this->nactiveclasses_ ) {
             ROS_ERROR("[Training_CVSA] Parameter 'init_percentual' must have the same size of 'classes'");
             return false;
         }else if(static_cast<float>(std::accumulate(this->init_percentual_.begin(), this->init_percentual_.end(), 0.0)) != 1.0f){
@@ -209,7 +218,7 @@ bool TrainingCVSA::configure(void) {
     }
 
     for(int i = 0; i < this->nclasses_; i++) {
-        if(this->classes_at(i) == Events::Rest){
+        if(this->classes_.at(i) == Events::Rest){
             this->trialsequence_.addclass(this->classes_.at(i), this->trials_per_class_.at(i), this->mindur_rest_, this->maxdur_rest_);
         }else{
             this->trialsequence_.addclass(this->classes_.at(i), this->trials_per_class_.at(i), this->mindur_active_, this->maxdur_active_);
@@ -255,12 +264,12 @@ int TrainingCVSA::class2index(int eventcue) {
 
 float TrainingCVSA::direction2threshold(int index) {
 
-	if(index != -1) {
-		return this->thresholds_[index];
-	} else {
-		ROS_ERROR("[Training_CVSA] Unknown direction");
-		return -1;
-	}
+    if(index != -1) {
+        return this->thresholds_[index];
+    } else {
+        ROS_ERROR("[Training_CVSA] Unknown direction");
+        return -1;
+    }
 }
 
 std::vector<std::vector<float>> TrainingCVSA::str2matrix(const std::string& str) {
@@ -547,7 +556,7 @@ void TrainingCVSA::bci_protocol(void){
         this->setAudio(idx_sampleAudio, sampleAudio, bufferAudioSize, n_sampleAudio);
 
         // Set up initial probabilities
-        this->current_input_ = std::vector<float>(this->nclasses_, 0.0f); 
+        this->current_input_ = std::vector<float>(this->nactiveclasses_, 0.0f); 
 
         while(ros::ok() && this->user_quit_ == false && trialhit == -1 && idx_sampleAudio + n_sampleAudio < this->buffer_audio_full_.size()) {
 
@@ -601,10 +610,14 @@ void TrainingCVSA::bci_protocol(void){
         /* BOOM */
         if(trialdirection == trialhit){
             boomevent = Events::Hit;
-        }else if(trialhit >= 0 && trialhit < this->nclasses_){
+        }else if(trialhit >= 0 && trialhit < this->nactiveclasses_){
             boomevent = Events::Miss;
         }else{
-            boomevent = Events::Timeout;
+            if(trialclass != Events::Rest){
+                boomevent = Events::Timeout;
+            }else{
+                boomevent = Events::Hit; // consider a hit if the rest class is presented and timeout occurs
+            }
         }
         // for the robot motion
         if(this->robot_control_){
@@ -629,10 +642,18 @@ void TrainingCVSA::bci_protocol(void){
             this->hide_boom();
             this->setevent(boomevent + Events::Off);
         }else{
+            std::cout << "trial direction: " << trialdirection << " trial hit: " << trialhit << std::endl;
             this->setevent(boomevent);
-            this->show_boom(trialdirection, trialhit);
-            this->sleep(this->duration_.boom);
-            this->hide_boom();
+            if(trialclass == Events::Rest){
+                this->show_center_rest(trialhit);
+                this->sleep(this->duration_.boom);
+                this->hide_center_rest();
+            }else{
+                this->show_boom(trialdirection, trialhit);
+                this->sleep(this->duration_.boom);
+                this->hide_boom();
+            }
+            
             this->setevent(boomevent + Events::Off);
         }
 
@@ -704,10 +725,10 @@ std::vector<float> TrainingCVSA::normalize4audio(std::vector<float>& input) {
 
 void TrainingCVSA::fillAudioBuffer(int& idx_sampleAudio, const size_t& n_sampleAudio, bool cue) {
 
-    std::vector<float> input_norm = std::vector<float>(this->nclasses_, 0.0f);
+    std::vector<float> input_norm = std::vector<float>(this->nactiveclasses_, 0.0f);
 
     if(cue){
-        input_norm = std::vector<float>(this->nclasses_, 1.0f);
+        input_norm = std::vector<float>(this->nactiveclasses_, 1.0f);
     }else if(this->modality_ == Modality::Evaluation && !cue && this->audio_increasing_){
         input_norm = this->normalize4audio(this->current_input_);
     }else if(this->modality_ == Modality::Calibration && !cue && this->audio_increasing_){
@@ -768,8 +789,8 @@ void TrainingCVSA::loadWAVFile(const std::string& filename) {
     this->sampleRate_audio_ = sfInfo.samplerate;
     */
 
-    if(this->nclasses_ != this->channels_audio_) {
-        ROS_WARN("[Training_CVSA] The number of classes (%d) is different of the number of channels of the audio feedback (%d)", this->nclasses_, this->channels_audio_);
+    if(this->nactiveclasses_ != this->channels_audio_) {
+        ROS_WARN("[Training_CVSA] The number of active classes (%d) is different of the number of channels of the audio feedback (%d)", this->nactiveclasses_, this->channels_audio_);
     }
 
     this->buffer_audio_full_.resize(sfInfo.frames * sfInfo.channels);
@@ -829,7 +850,7 @@ int TrainingCVSA::is_target_hit(std::vector<float> input, int elapsed, int durat
 
     int target = -1;
 
-    for(int i = 0; i < this->nclasses_; i++) {
+    for(int i = 0; i < this->nactiveclasses_; i++) {
         if(input.at(i) >= this->thresholds_.at(i)) { 
             target = i;
             break;

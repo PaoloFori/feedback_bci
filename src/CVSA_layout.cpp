@@ -23,10 +23,11 @@ void CVSA_layout::setup(void) {
     // create the graphic elements
     this->cross_   = new neurodraw::Cross(0.3f, 0.05f);
     this->center_  = new neurodraw::Circle(0.03f, true, neurodraw::Palette::white);
+    this->center_rest_  = new neurodraw::Circle(0.03f, true, neurodraw::Palette::yellow);
     this->calibration_  = new neurodraw::Circle(0.03f, true, neurodraw::Palette::white);
     this->circle_  = new neurodraw::Circle(0.05f, true, neurodraw::Palette::dimgray);
     this->square_   = new neurodraw::Rectangle(0.2f, 0.2f, true, neurodraw::Palette::white);
-    for(int i = 0; i < this->nclasses_; i++) {
+    for(int i = 0; i < this->nactiveclasses_; i++) {
         neurodraw::Color color = CuePalette.at(i);
         neurodraw::Ring* ring = new neurodraw::Ring(0.15f,  0.03f, color);
         ring->move(this->circlePositions_.at(i).at(0), this->circlePositions_.at(i).at(1));
@@ -35,11 +36,12 @@ void CVSA_layout::setup(void) {
 
     // add the elements to the engine
     this->engine_->add(this->center_);
+    this->engine_->add(this->center_rest_);
     this->engine_->add(this->cross_);
     this->engine_->add(this->square_);
     this->engine_->add(this->circle_);
     this->engine_->add(this->calibration_);
-    for(int i = 0; i < this->nclasses_; i++) {
+    for(int i = 0; i < this->nactiveclasses_; i++) {
         this->engine_->add(this->rings_.at(i));
         this->rings_.at(i)->hide();
     }
@@ -49,18 +51,29 @@ void CVSA_layout::setup(void) {
     this->cross_->hide();
     this->center_->hide();
     this->calibration_->hide();
+    this->center_rest_->hide();
 }
 
 void CVSA_layout::reset(void) { 
     this->circle_->hide();
+    this->center_rest_->hide();
 }
 
 void CVSA_layout::show_center(void) {
     this->center_->show();
 }
 
+void CVSA_layout::show_center_rest(int idx_color) {
+    this->center_rest_->set_color(CuePalette.at(idx_color));
+    this->center_rest_->show();
+}
+
+void CVSA_layout::hide_center_rest(void) {
+    this->center_rest_->hide();
+}
+
 void CVSA_layout::show_rings_classes(void) {
-    for(int i = 0; i < this->nclasses_; i++) {
+    for(int i = 0; i < this->nactiveclasses_; i++) {
         this->rings_.at(i)->show();
     }
 }
@@ -85,7 +98,7 @@ void CVSA_layout::show_cue(int index) {
 
 void CVSA_layout::show_boom(int idx_trial_cue, int idx_color) { 
 
-    if(idx_trial_cue > this->circlePositions_.size() || idx_trial_cue < 0){
+    if(idx_trial_cue >= this->circlePositions_.size() || idx_trial_cue < 0){
         ROS_WARN("Unknown circle required. Boom position is not set");
         return;
     }
@@ -142,8 +155,8 @@ void CVSA_layout::on_keyboard_event(const neurodraw::KeyboardEvent& event) {
     }
 }
 
-bool CVSA_layout::set_nclasses(int nclasses){
-    this->nclasses_ = nclasses;
+bool CVSA_layout::set_nactiveclasses(int nactiveclasses){
+    this->nactiveclasses_ = nactiveclasses;
     return true;
 }
 
